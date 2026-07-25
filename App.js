@@ -1,6 +1,11 @@
 import React from 'react';
-import WelcomeScreen from './src/screens/WelcomeScreen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import ProfileScreen from './src/screens/ProfileScreen';
 
 export default function App() {
-  return <WelcomeScreen />;
+  return (
+    <SafeAreaProvider>
+      <ProfileScreen />
+    </SafeAreaProvider>
+  );
 }

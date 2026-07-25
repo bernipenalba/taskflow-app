@@ -3,21 +3,36 @@
 Aplicación móvil de gestión de tareas, construida con React Native y Expo
 como proyecto final del curso de desarrollo de apps móviles.
 
-## Checkpoint 1: Estructura base
+## Checkpoint 2: Estructura profesional, ProfileCard y Safe Area
 
-Este checkpoint establece los cimientos del proyecto: inicialización con Expo (Managed Workflow), una arquitectura de carpetas ordenada dentro de `/src`, y una pantalla de bienvenida funcional que confirma que el flujo de
-renderizado móvil funciona correctamente.
+En este checkpoint se organizó el proyecto siguiendo una arquitectura
+profesional (`src/screens`, `src/components`, `src/constants`, `src/data`),
+se construyó el componente reutilizable `ProfileCard` (recibe sus datos
+por props, sin datos hardcodeados), y se agregó soporte de Safe Area con
+`react-native-safe-area-context` para respetar notch y barras del
+dispositivo.
+
+Pantallas que se pueden visualizar actualmente:
+- **ProfileScreen**: muestra el `ProfileCard` con datos leídos desde
+  `src/data/profileData.js` (es la pantalla configurada en `App.js`).
+- **HomeScreen**: estructura base creada, todavía sin datos reales.
 
 ## Estructura del proyecto
 
 ```
 src/
-  components/   -> piezas de interfaz reutilizables
-  screens/      -> pantallas completas de la app
-  assets/       -> imágenes y fuentes usadas dentro de la app
-  theme/        -> colores y constantes visuales compartidas
+  components/
+    ProfileCard.js
+  screens/
+    HomeScreen.js
+    ProfileScreen.js
+    WelcomeScreen.js
+  constants/
+    colors.js
+  data/
+    profileData.js
+  assets/
 ```
-
 ## Cómo correrlo localmente
 
 1. Cloná este repositorio.
@@ -29,5 +44,5 @@ src/
    ```
    npx expo start
    ```
-4. Escaneá el código QR con la app Expo Go (Android/iOS), o presioná `a`
-   en la terminal para abrirlo en un emulador de Android.
+4. Escaneá el código QR con Expo Go, o presioná `a` para abrir en el
+   emulador de Android.
