@@ -1,11 +1,11 @@
 import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import ProfileScreen from './src/screens/ProfileScreen';
+import AddTaskScreen from './src/screens/AddTaskScreen';
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <ProfileScreen />
+      <AddTaskScreen />
     </SafeAreaProvider>
   );
 }
