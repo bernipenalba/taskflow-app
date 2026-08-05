@@ -4,6 +4,7 @@ export const colors = {
   primaryLight: '#818CF8',  // indigo 400 — hover/focus, detalles suaves
   primaryDark: '#4338CA',   // indigo 700 — estado "presionado" del botón
   accent: '#14B8A6',        // teal 500 — acento moderno (categorías, chips seleccionados)
+  accentSoft: '#E6FBF7',   // teal muy claro — fondo de badges de categoría (texto encima con `accent`)
   secondary: '#F59E0B',     // amber — ya lo tenías, se mantiene
 
   // Semánticos (para validación)
