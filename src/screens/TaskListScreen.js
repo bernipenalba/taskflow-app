@@ -1,35 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
-import AddTaskScreen from './AddTaskScreen';
-import TaskDetailScreen from './TaskDetailScreen';
 import EmptyState from '../components/EmptyState';
 
-const HomeScreen = () => {
-  const [tasks, setTasks] = useState([]);
-  const [selectedTask, setSelectedTask] = useState(null);
-
-  // Recibe la tarea que arma AddTaskScreen y la agrega a la lista, con un id único
-  const handleAddTask = (task) => {
-    const taskWithId = { id: Date.now().toString(), ...task };
-    setTasks((prevTasks) => [taskWithId, ...prevTasks]);
-  };
-
-  // Si hay una tarea seleccionada, esta pantalla se reemplaza entera por el detalle
-  if (selectedTask) {
-    return (
-      <TaskDetailScreen
-        task={selectedTask}
-        onBack={() => setSelectedTask(null)}
-      />
-    );
-  }
-
+// tasks llega por props desde AppNavigator (vía TasksStack).
+// navigation llega automáticamente: esta pantalla está registrada en un Stack.Screen.
+const TaskListScreen = ({ tasks, navigation }) => {
   const renderTask = ({ item }) => (
     <TouchableOpacity
       style={styles.taskItem}
-      onPress={() => setSelectedTask(item)}
+      onPress={() => navigation.navigate('TaskDetail', { taskId: item.id, title: item.title })}
       activeOpacity={0.7}
     >
       <View style={styles.taskItemHeader}>
@@ -47,26 +28,23 @@ const HomeScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <FlatList
-          data={tasks}
-          keyExtractor={(item) => item.id}
-          renderItem={renderTask}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
-            <>
-              <AddTaskScreen onAddTask={handleAddTask} />
-              <Text style={styles.listTitle}>Mis tareas</Text>
-            </>
-          }
-          ListEmptyComponent={<EmptyState />}
-        />
-      </KeyboardAvoidingView>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTask}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate('TaskForm')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.addButtonText}>+ Nueva tarea</Text>
+          </TouchableOpacity>
+        }
+        ListEmptyComponent={<EmptyState />}
+      />
     </SafeAreaView>
   );
 };
@@ -80,13 +58,20 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     flexGrow: 1,
   },
-  listTitle: {
-    fontSize: 18,
+  addButton: {
+    backgroundColor: colors.primary,
+    borderRadius: colors.radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginHorizontal: 24,
+    marginTop: 20,
+    marginBottom: 8,
+    ...colors.shadow.card,
+  },
+  addButtonText: {
+    color: colors.surface,
+    fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
-    marginTop: 8,
-    marginBottom: 12,
-    paddingHorizontal: 24,
   },
   taskItem: {
     backgroundColor: colors.surface,
@@ -127,4 +112,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default TaskListScreen;

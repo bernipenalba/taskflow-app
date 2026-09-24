@@ -1,9 +1,24 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
 
-const TaskDetailScreen = ({ task, onBack }) => {
+// route llega automáticamente (pantalla registrada en el Stack).
+// tasks llega por props desde AppNavigator: acá solo se busca por id.
+const TaskDetailScreen = ({ route, tasks }) => {
+  const { taskId } = route.params;
+  const task = tasks.find((t) => t.id === taskId);
+
+  // Defensivo: si el id no matchea ninguna tarea (por ejemplo, la lista se vació
+  // mientras esta pantalla seguía en la pila), evitamos que la app crashee.
+  if (!task) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+        <Text style={styles.notFound}>Esta tarea ya no existe.</Text>
+      </SafeAreaView>
+    );
+  }
+
   const formattedDate = new Date(task.createdAt).toLocaleDateString('es-AR', {
     day: '2-digit',
     month: 'long',
@@ -11,11 +26,7 @@ const TaskDetailScreen = ({ task, onBack }) => {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
-        <Text style={styles.backButtonText}>‹ Volver</Text>
-      </TouchableOpacity>
-
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <View style={styles.card}>
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryBadgeText}>{task.category}</Text>
@@ -36,16 +47,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 20,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 20,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
+  notFound: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 40,
   },
   card: {
     backgroundColor: colors.surface,

@@ -1,14 +1,14 @@
 import React from 'react';
-import { Text, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
 import ProfileCard from '../components/ProfileCard';
 import { profileData } from '../data/profileData';
 
+// El título "Perfil" ya lo muestra el header nativo del Tab (ver AppNavigator.js).
 const ProfileScreen = () => {
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Mi perfil</Text>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <ProfileCard
         name={profileData.name}
         role={profileData.role}
@@ -23,13 +23,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 20,
+    paddingTop: 20,
   },
 });
 
