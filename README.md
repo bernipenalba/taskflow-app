@@ -27,13 +27,54 @@ publicación. El `Tab.Screen` de "Home" oculta su propio header
 (`headerShown: false`) porque el `Stack.Navigator` interno ya pone uno
 propio por pantalla (título dinámico según dónde estés parado).
 
-**Dónde vive el estado:** el array `tasks` y la función `addTask` viven en
-`AppNavigator.js` (el ancestro común de las tres pantallas del Stack de
-tareas) y bajan a cada pantalla por props. Al tocar una tarea en la lista,
-se navega pasando solo su `id` (`navigation.navigate('TaskDetail', { taskId })`);
-`TaskDetailScreen` busca ese `id` dentro de `tasks` para mostrar el detalle
-completo. El formulario, al guardar, llama a `addTask` y navega de vuelta
-con `navigation.navigate('TaskList')`.
+**Dónde vive el estado:** al tocar una tarea en la lista, se navega pasando
+solo su `id` (`navigation.navigate('TaskDetail', { taskId })`); del otro
+lado, `TaskDetailScreen` usa ese `id` para pedir el detalle completo (ver
+Módulo 6 — desde ahí el array de tareas ya no vive en `AppNavigator.js`,
+sino en el store de Redux).
+
+## Módulo 6: Estado global con Redux Toolkit
+
+Las tareas y el filtro activo dejaron de vivir en un `useState` local y
+pasaron a un **store de Redux**, con [Redux Toolkit](https://redux-toolkit.js.org/)
+(`@reduxjs/toolkit` + `react-redux`). Estructura (organización por
+funcionalidad, como ya usábamos en `screens`/`components`):
+
+```
+src/
+  store/
+    store.js              configureStore({ reducer: { tasks: ... } })
+  features/
+    tasks/
+      tasksSlice.js        estado inicial, reducers, acciones y selectores
+  components/
+    tasks/
+      TaskFilterBar.js     componente de presentación (no conoce Redux)
+```
+
+**El flujo, de punta a punta:** `App.js` envuelve todo con
+`<Provider store={store}>` (por fuera de `SafeAreaProvider` y del
+navegador), así que cualquier pantalla puede engancharse al store con los
+Hooks de `react-redux`:
+
+- **Leer datos** → `useSelector`. `TaskListScreen` usa `selectVisibleTasks`
+  (memoizado con `createSelector`, ya filtrado según `state.tasks.filter`);
+  `TaskDetailScreen` usa `selectTaskById(taskId)` para traer una tarea
+  puntual.
+- **Modificar datos** → `useDispatch`. `TaskFormScreen` despacha `addTask`,
+  `TaskDetailScreen` despacha `toggleTaskStatus` y `deleteTask`, y
+  `TaskListScreen` despacha `setFilter` cuando se toca un botón de
+  `TaskFilterBar`.
+
+Como el estado ya no vive en `AppNavigator.js`, las pantallas del Stack de
+tareas volvieron a registrarse con la forma simple
+(`<Stack.Screen component={TaskListScreen} />`) en vez del patrón
+`children` que hacía falta en el Checkpoint 5 para pasarles `tasks` por
+props — ya no hace falta: cada una lee directo del store.
+
+`TaskFilterBar` es un componente de **presentación pura**: recibe
+`value`/`onChange` por props y no importa nada de Redux, así que se podría
+reusar en cualquier otra pantalla sin cambiarle una línea.
 
 ## Checkpoint 2: Estructura profesional, ProfileCard y Safe Area
 
@@ -47,14 +88,21 @@ dispositivo.
 ## Estructura del proyecto
 
 ```
-App.js
+App.js                  (envuelve todo con <Provider store={store}>)
 index.js
 src/
   navigation/
-    AppNavigator.js     (Tab + Stack, y dueño del estado `tasks`)
+    AppNavigator.js      (Tab + Stack de pantallas)
+  store/
+    store.js              (configureStore)
+  features/
+    tasks/
+      tasksSlice.js        (estado, reducers, acciones y selectores de tareas)
   components/
     ProfileCard.js
     EmptyState.js
+    tasks/
+      TaskFilterBar.js
   screens/
     TaskListScreen.js
     TaskDetailScreen.js

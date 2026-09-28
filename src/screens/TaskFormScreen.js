@@ -10,13 +10,15 @@ import {
     Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDispatch } from 'react-redux';
 import { colors } from '../constants/colors';
+import { addTask } from '../features/tasks/tasksSlice';
 
 const CATEGORIES = ['Personal', 'Trabajo', 'Urgente', 'Otro'];
 
-// onAddTask llega por props desde AppNavigator (vía TasksStack).
 // navigation llega automáticamente: esta pantalla está registrada en un Stack.Screen.
-const TaskFormScreen = ({ onAddTask, navigation }) => {
+const TaskFormScreen = ({ navigation }) => {
+    const dispatch = useDispatch();
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -60,14 +62,10 @@ const TaskFormScreen = ({ onAddTask, navigation }) => {
             return; // hay campos inválidos, no seguimos
     }
 
-    const newTask = {
-            title: title.trim(),
-            description: description.trim(),
-            category,
-            createdAt: new Date(),
-    };
-
-    onAddTask(newTask); // Le pasa la tarea a AppNavigator para que la agregue a la lista
+    // El id, la fecha y el trim() final los arma el propio reducer
+    // (bloque `prepare` de addTask en tasksSlice.js) — acá solo se avisa
+    // qué se quiere crear.
+    dispatch(addTask({ title, description, category }));
 
     // Reset del formulario a su estado inicial
     setTitle('');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -22,38 +22,35 @@ const headerOptions = {
 };
 
 // Stack de "Tareas": Lista -> Detalle -> Formulario.
-// Recibe tasks/addTask desde AppNavigator y se los pasa a cada pantalla por props
-// (todavía no hay Redux/Context — eso llega en el Módulo 6).
-function TasksStack({ tasks, addTask }) {
+// A diferencia del Checkpoint 5, ya no hace falta pasarle tasks/addTask por
+// props: cada pantalla lee y modifica el store directo con useSelector y
+// useDispatch (ver src/features/tasks/tasksSlice.js), así que alcanza con
+// el registro simple component={Screen}.
+function TasksStack() {
   return (
     <Stack.Navigator screenOptions={headerOptions}>
-      <Stack.Screen name="TaskList" options={{ title: 'Mis tareas' }}>
-        {(props) => <TaskListScreen {...props} tasks={tasks} />}
-      </Stack.Screen>
+      <Stack.Screen
+        name="TaskList"
+        component={TaskListScreen}
+        options={{ title: 'Mis tareas' }}
+      />
 
       <Stack.Screen
         name="TaskDetail"
+        component={TaskDetailScreen}
         options={({ route }) => ({ title: route.params?.title ?? 'Detalle' })}
-      >
-        {(props) => <TaskDetailScreen {...props} tasks={tasks} />}
-      </Stack.Screen>
+      />
 
-      <Stack.Screen name="TaskForm" options={{ title: 'Nueva tarea' }}>
-        {(props) => <TaskFormScreen {...props} onAddTask={addTask} />}
-      </Stack.Screen>
+      <Stack.Screen
+        name="TaskForm"
+        component={TaskFormScreen}
+        options={{ title: 'Nueva tarea' }}
+      />
     </Stack.Navigator>
   );
 }
 
 export default function AppNavigator() {
-  // Las tareas viven acá: es el ancestro común de TaskList, TaskDetail y TaskForm.
-  const [tasks, setTasks] = useState([]);
-
-  const addTask = (task) => {
-    const taskWithId = { id: Date.now().toString(), ...task };
-    setTasks((prevTasks) => [taskWithId, ...prevTasks]);
-  };
-
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -73,9 +70,7 @@ export default function AppNavigator() {
           },
         })}
       >
-        <Tab.Screen name="Home" options={{ headerShown: false, title: 'Tareas' }}>
-          {() => <TasksStack tasks={tasks} addTask={addTask} />}
-        </Tab.Screen>
+        <Tab.Screen name="Home" component={TasksStack} options={{ headerShown: false, title: 'Tareas' }} />
 
         <Tab.Screen
           name="Profile"

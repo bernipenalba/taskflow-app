@@ -1,15 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector, useDispatch } from 'react-redux';
 import { colors } from '../constants/colors';
+import { selectTaskById, toggleTaskStatus, deleteTask } from '../features/tasks/tasksSlice';
 
-// route llega automáticamente (pantalla registrada en el Stack).
-// tasks llega por props desde AppNavigator: acá solo se busca por id.
-const TaskDetailScreen = ({ route, tasks }) => {
+// route y navigation llegan automáticamente (pantalla registrada en el Stack).
+// La tarea ya no llega por props: se busca en el store por id.
+const TaskDetailScreen = ({ route, navigation }) => {
   const { taskId } = route.params;
-  const task = tasks.find((t) => t.id === taskId);
+  const task = useSelector(selectTaskById(taskId));
+  const dispatch = useDispatch();
 
-  // Defensivo: si el id no matchea ninguna tarea (por ejemplo, la lista se vació
+  // Defensivo: si el id no matchea ninguna tarea (por ejemplo, se borró
   // mientras esta pantalla seguía en la pila), evitamos que la app crashee.
   if (!task) {
     return (
@@ -25,6 +28,20 @@ const TaskDetailScreen = ({ route, tasks }) => {
     year: 'numeric',
   });
 
+  const handleDelete = () => {
+    Alert.alert('Eliminar tarea', '¿Seguro que querés eliminar esta tarea?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => {
+          dispatch(deleteTask(task.id));
+          navigation.navigate('TaskList');
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <View style={styles.card}>
@@ -37,7 +54,21 @@ const TaskDetailScreen = ({ route, tasks }) => {
 
         <Text style={styles.label}>Descripción</Text>
         <Text style={styles.description}>{task.description}</Text>
+
+        <TouchableOpacity
+          style={[styles.toggleButton, task.completed && styles.toggleButtonDone]}
+          onPress={() => dispatch(toggleTaskStatus(task.id))}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.toggleButtonText, task.completed && styles.toggleButtonTextDone]}>
+            {task.completed ? '✓ Completada' : 'Marcar como completada'}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.7}>
+        <Text style={styles.deleteButtonText}>Eliminar tarea</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -97,6 +128,33 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
     lineHeight: 22,
+    marginBottom: 24,
+  },
+  toggleButton: {
+    backgroundColor: colors.primary,
+    borderRadius: colors.radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  toggleButtonDone: {
+    backgroundColor: colors.accentSoft,
+  },
+  toggleButtonText: {
+    color: colors.surface,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  toggleButtonTextDone: {
+    color: colors.accent,
+  },
+  deleteButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  deleteButtonText: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

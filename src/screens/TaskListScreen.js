@@ -1,12 +1,19 @@
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector, useDispatch } from 'react-redux';
 import { colors } from '../constants/colors';
 import EmptyState from '../components/EmptyState';
+import TaskFilterBar from '../components/tasks/TaskFilterBar';
+import { selectVisibleTasks, selectTaskFilter, setFilter } from '../features/tasks/tasksSlice';
 
-// tasks llega por props desde AppNavigator (vía TasksStack).
 // navigation llega automáticamente: esta pantalla está registrada en un Stack.Screen.
-const TaskListScreen = ({ tasks, navigation }) => {
+// tasks y filter ya NO llegan por props: se leen directo del store.
+const TaskListScreen = ({ navigation }) => {
+  const visibleTasks = useSelector(selectVisibleTasks);
+  const filter = useSelector(selectTaskFilter);
+  const dispatch = useDispatch();
+
   const renderTask = ({ item }) => (
     <TouchableOpacity
       style={styles.taskItem}
@@ -14,7 +21,10 @@ const TaskListScreen = ({ tasks, navigation }) => {
       activeOpacity={0.7}
     >
       <View style={styles.taskItemHeader}>
-        <Text style={styles.taskItemTitle} numberOfLines={1}>
+        <Text
+          style={[styles.taskItemTitle, item.completed && styles.taskItemTitleDone]}
+          numberOfLines={1}
+        >
           {item.title}
         </Text>
         <View style={styles.taskItemBadge}>
@@ -30,18 +40,21 @@ const TaskListScreen = ({ tasks, navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <FlatList
-        data={tasks}
+        data={visibleTasks}
         keyExtractor={(item) => item.id}
         renderItem={renderTask}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => navigation.navigate('TaskForm')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.addButtonText}>+ Nueva tarea</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => navigation.navigate('TaskForm')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.addButtonText}>+ Nueva tarea</Text>
+            </TouchableOpacity>
+            <TaskFilterBar value={filter} onChange={(newFilter) => dispatch(setFilter(newFilter))} />
+          </>
         }
         ListEmptyComponent={<EmptyState />}
       />
@@ -65,7 +78,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 24,
     marginTop: 20,
-    marginBottom: 8,
+    marginBottom: 16,
     ...colors.shadow.card,
   },
   addButtonText: {
@@ -94,6 +107,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     flex: 1,
+  },
+  taskItemTitleDone: {
+    textDecorationLine: 'line-through',
+    color: colors.textSecondary,
   },
   taskItemBadge: {
     backgroundColor: colors.accentSoft,
