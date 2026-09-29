@@ -1,11 +1,28 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { colors } from '../constants/colors';
 
-const ProfileCard = ({ name, role, image }) => {
+// onAvatarPress es opcional: si no se pasa, la foto se muestra fija (como
+// hasta el Checkpoint 7). Cuando se pasa, envuelve el avatar en un
+// TouchableOpacity — mismo patrón de "componente de presentación + callback
+// por props" que ya usamos con TaskFilterBar.
+const ProfileCard = ({ name, role, image, onAvatarPress, isUploading }) => {
+  const avatar = <Image source={{ uri: image }} style={styles.avatar} />;
+
   return (
     <View style={styles.card}>
-      <Image source={{ uri: image }} style={styles.avatar} />
+      {onAvatarPress ? (
+        <TouchableOpacity onPress={onAvatarPress} disabled={isUploading} activeOpacity={0.7}>
+          {avatar}
+          {isUploading ? (
+            <View style={styles.avatarOverlay}>
+              <ActivityIndicator color={colors.surface} />
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      ) : (
+        avatar
+      )}
       <View style={styles.info}>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.role}>{role}</Text>
@@ -34,6 +51,17 @@ const styles = StyleSheet.create({
         borderRadius: 36,
         marginRight: 16,
         backgroundColor: colors.border,
+    },
+    avatarOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 16, // mismo marginRight que avatar, para cubrir exactamente el círculo
+        bottom: 0,
+        borderRadius: 36,
+        backgroundColor: 'rgba(15, 23, 42, 0.45)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     info: {
         flex: 1,

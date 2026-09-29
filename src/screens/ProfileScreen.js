@@ -6,7 +6,9 @@ import { colors } from '../constants/colors';
 import ProfileCard from '../components/ProfileCard';
 import { profileData } from '../data/profileData';
 import { selectUser } from '../features/auth/authSlice';
+import { selectPhotoURL } from '../features/profile/profileSlice';
 import { logout } from '../services/authService';
+import { useAvatarPicker } from '../hooks/useAvatarPicker';
 
 // El título "Perfil" ya lo muestra el header nativo del Tab (ver MainTabs.js).
 // No hace falta navegar tras cerrar sesión: en cuanto Firebase confirma el
@@ -14,7 +16,17 @@ import { logout } from '../services/authService';
 // null y la app entera cambia sola al AuthStack.
 const ProfileScreen = () => {
   const user = useSelector(selectUser);
+  const photoURL = useSelector(selectPhotoURL);
+  const { changeAvatar, isUploading } = useAvatarPicker();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleChangeAvatar = async () => {
+    try {
+      await changeAvatar();
+    } catch (error) {
+      Alert.alert('No se pudo cambiar la foto', error.message);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert('Cerrar sesión', '¿Seguro que querés salir?', [
@@ -40,8 +52,11 @@ const ProfileScreen = () => {
       <ProfileCard
         name={profileData.name}
         role={profileData.role}
-        image={profileData.image}
+        image={photoURL || profileData.image}
+        onAvatarPress={handleChangeAvatar}
+        isUploading={isUploading}
       />
+      <Text style={styles.avatarHint}>Tocá la foto para cambiarla</Text>
 
       {user?.email ? <Text style={styles.email}>{user.email}</Text> : null}
 
@@ -65,6 +80,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 24,
     paddingTop: 20,
+  },
+  avatarHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 10,
   },
   email: {
     fontSize: 13,

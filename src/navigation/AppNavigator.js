@@ -6,8 +6,10 @@ import { useSelector, useDispatch } from 'react-redux';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { subscribeToUserTasks } from '../services/taskService';
+import { fetchAvatarFromFirestore } from '../services/profileService';
 import { setUser, selectUser, selectIsCheckingAuth } from '../features/auth/authSlice';
 import { setTasks, clearTasks } from '../features/tasks/tasksSlice';
+import { setPhotoURL, clearProfile } from '../features/profile/profileSlice';
 import { colors } from '../constants/colors';
 
 import MainTabs from './MainTabs';
@@ -55,6 +57,20 @@ export default function AppNavigator() {
     });
 
     return () => unsubscribeTasks();
+  }, [user, dispatch]);
+
+  // El avatar cambia poco (solo cuando el usuario elige uno nuevo, y ahí ya
+  // se actualiza Redux directo desde useAvatarPicker) — alcanza con traerlo
+  // UNA vez al iniciar sesión, no hace falta un listener en tiempo real.
+  useEffect(() => {
+    if (!user) {
+      dispatch(clearProfile());
+      return;
+    }
+
+    fetchAvatarFromFirestore(user.uid)
+      .then((photoURL) => dispatch(setPhotoURL(photoURL)))
+      .catch((error) => console.error('Error trayendo el avatar:', error));
   }, [user, dispatch]);
 
   // Mientras no se sepa si hay sesión guardada, no se muestra ni Login ni
