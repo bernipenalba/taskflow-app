@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { colors } from '../constants/colors';
-import { selectTaskById, toggleTaskStatus, deleteTask } from '../features/tasks/tasksSlice';
+import { selectTaskById } from '../features/tasks/tasksSlice';
+import { updateTaskInFirestore, deleteTaskFromFirestore } from '../services/taskService';
 
 // route y navigation llegan automáticamente (pantalla registrada en el Stack).
-// La tarea ya no llega por props: se busca en el store por id.
+// La tarea ya no llega por props: se busca en el store por id (y el store,
+// a su vez, se llena con lo que reporte el listener de Firestore).
 const TaskDetailScreen = ({ route, navigation }) => {
   const { taskId } = route.params;
   const task = useSelector(selectTaskById(taskId));
-  const dispatch = useDispatch();
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Defensivo: si el id no matchea ninguna tarea (por ejemplo, se borró
   // mientras esta pantalla seguía en la pila), evitamos que la app crashee.
@@ -22,11 +24,25 @@ const TaskDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  const formattedDate = new Date(task.createdAt).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+  // task.createdAt llega como un Timestamp de Firestore (tiene .toDate()),
+  // no como texto ISO ni como Date de JS. Justo después de crear la tarea,
+  // mientras el servidor todavía no confirmó el serverTimestamp(), puede
+  // llegar como null por un instante — por eso el chequeo defensivo.
+  const createdDate = task.createdAt?.toDate ? task.createdAt.toDate() : null;
+  const formattedDate = createdDate
+    ? createdDate.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+    : 'Guardando...';
+
+  const handleToggle = async () => {
+    setIsUpdating(true);
+    try {
+      await updateTaskInFirestore(task.id, { completed: !task.completed });
+    } catch (error) {
+      Alert.alert('No se pudo actualizar', error.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleDelete = () => {
     Alert.alert('Eliminar tarea', '¿Seguro que querés eliminar esta tarea?', [
@@ -34,9 +50,13 @@ const TaskDetailScreen = ({ route, navigation }) => {
       {
         text: 'Eliminar',
         style: 'destructive',
-        onPress: () => {
-          dispatch(deleteTask(task.id));
-          navigation.navigate('TaskList');
+        onPress: async () => {
+          try {
+            await deleteTaskFromFirestore(task.id);
+            navigation.navigate('TaskList');
+          } catch (error) {
+            Alert.alert('No se pudo eliminar', error.message);
+          }
         },
       },
     ]);
@@ -57,7 +77,8 @@ const TaskDetailScreen = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={[styles.toggleButton, task.completed && styles.toggleButtonDone]}
-          onPress={() => dispatch(toggleTaskStatus(task.id))}
+          onPress={handleToggle}
+          disabled={isUpdating}
           activeOpacity={0.8}
         >
           <Text style={[styles.toggleButtonText, task.completed && styles.toggleButtonTextDone]}>

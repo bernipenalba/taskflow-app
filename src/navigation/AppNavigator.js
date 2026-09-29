@@ -1,83 +1,91 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
+import { useSelector, useDispatch } from 'react-redux';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../config/firebase';
+import { subscribeToUserTasks } from '../services/taskService';
+import { setUser, selectUser, selectIsCheckingAuth } from '../features/auth/authSlice';
+import { setTasks, clearTasks } from '../features/tasks/tasksSlice';
 import { colors } from '../constants/colors';
 
-import TaskListScreen from '../screens/TaskListScreen';
-import TaskDetailScreen from '../screens/TaskDetailScreen';
-import TaskFormScreen from '../screens/TaskFormScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import MainTabs from './MainTabs';
+import AuthStack from './AuthStack';
 
-const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Estilo de header compartido por todas las pantallas con encabezado nativo
-const headerOptions = {
-  headerStyle: { backgroundColor: colors.surface },
-  headerTintColor: colors.text,
-  headerTitleStyle: { fontWeight: '700' },
-  headerShadowVisible: false,
-};
-
-// Stack de "Tareas": Lista -> Detalle -> Formulario.
-// A diferencia del Checkpoint 5, ya no hace falta pasarle tasks/addTask por
-// props: cada pantalla lee y modifica el store directo con useSelector y
-// useDispatch (ver src/features/tasks/tasksSlice.js), así que alcanza con
-// el registro simple component={Screen}.
-function TasksStack() {
-  return (
-    <Stack.Navigator screenOptions={headerOptions}>
-      <Stack.Screen
-        name="TaskList"
-        component={TaskListScreen}
-        options={{ title: 'Mis tareas' }}
-      />
-
-      <Stack.Screen
-        name="TaskDetail"
-        component={TaskDetailScreen}
-        options={({ route }) => ({ title: route.params?.title ?? 'Detalle' })}
-      />
-
-      <Stack.Screen
-        name="TaskForm"
-        component={TaskFormScreen}
-        options={{ title: 'Nueva tarea' }}
-      />
-    </Stack.Navigator>
-  );
-}
-
+// Navegación protegida: en vez de ocultar una pantalla, decide CUÁL de dos
+// árboles de navegación completos se monta. Mientras user sea null, MainTabs
+// (y las tareas de cualquiera) directamente no existe en este render.
 export default function AppNavigator() {
+  const user = useSelector(selectUser);
+  const isCheckingAuth = useSelector(selectIsCheckingAuth);
+  const dispatch = useDispatch();
+
+  // Restaura la sesión al arrancar. Firebase ya guardó el token de forma
+  // segura en el dispositivo; este listener solo pregunta cuál es la
+  // situación actual, y se vuelve a disparar cada vez que cambia (login/logout).
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        // firebaseUser trae métodos y datos no serializables: se guarda
+        // solo una versión chica y plana (regla del Módulo 6).
+        dispatch(setUser({ uid: firebaseUser.uid, email: firebaseUser.email }));
+      } else {
+        dispatch(setUser(null));
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, [dispatch]);
+
+  // Escucha las tareas del usuario activo. Se vuelve a armar cada vez que
+  // `user` cambia (login, logout, o cambio de cuenta), y SIEMPRE se limpia
+  // el listener anterior antes de crear uno nuevo, para no seguir recibiendo
+  // tareas de una sesión que ya cerró.
+  useEffect(() => {
+    if (!user) {
+      dispatch(clearTasks());
+      return;
+    }
+
+    const unsubscribeTasks = subscribeToUserTasks(user.uid, (tasks) => {
+      dispatch(setTasks(tasks));
+    });
+
+    return () => unsubscribeTasks();
+  }, [user, dispatch]);
+
+  // Mientras no se sepa si hay sesión guardada, no se muestra ni Login ni
+  // Tareas: evita el "parpadeo" de saltar al login un instante aunque el
+  // usuario ya estuviera logueado.
+  if (isCheckingAuth) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.textSecondary,
-          tabBarIcon: ({ color, size, focused }) => {
-            const iconName =
-              route.name === 'Home'
-                ? focused
-                  ? 'list'
-                  : 'list-outline'
-                : focused
-                  ? 'person'
-                  : 'person-outline';
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-        })}
-      >
-        <Tab.Screen name="Home" component={TasksStack} options={{ headerShown: false, title: 'Tareas' }} />
-
-        <Tab.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{ title: 'Perfil', ...headerOptions }}
-        />
-      </Tab.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {user ? (
+          <Stack.Screen name="Main" component={MainTabs} />
+        ) : (
+          <Stack.Screen name="Auth" component={AuthStack} />
+        )}
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
+});

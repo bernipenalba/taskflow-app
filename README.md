@@ -76,6 +76,87 @@ props — ya no hace falta: cada una lee directo del store.
 `value`/`onChange` por props y no importa nada de Redux, así que se podría
 reusar en cualquier otra pantalla sin cambiarle una línea.
 
+> **Nota:** los reducers `addTask`/`toggleTaskStatus`/`deleteTask` que se
+> describen arriba quedaron reemplazados en el Módulo 7 — ver esa sección
+> para el flujo actualizado, ahora con Firestore como fuente de verdad.
+
+## Módulo 7: Autenticación y persistencia con Firebase
+
+TaskFlow dejó de ser una app 100% local: ahora cada usuario tiene su propia
+cuenta (Firebase Authentication) y sus tareas viven en la nube (Cloud
+Firestore), sincronizadas en tiempo real con Redux.
+
+```
+src/
+  config/
+    firebase.js          Singleton: inicializa Firebase con variables de entorno
+  services/
+    authService.js         login / registro / logout (mensajes de error legibles)
+    taskService.js          CRUD de tareas en Firestore, filtrado por usuario
+  features/
+    auth/
+      authSlice.js          user, isCheckingAuth
+  navigation/
+    AppNavigator.js        raíz: decide Auth vs Main según la sesión
+    AuthStack.js            Login / Register
+    MainTabs.js              Tabs + Stack de tareas (la app "adentro")
+  screens/
+    auth/
+      LoginScreen.js
+      RegisterScreen.js
+```
+
+**Navegación protegida:** `AppNavigator.js` es ahora el componente raíz
+(mueve para acá el `NavigationContainer` que antes vivía directo en el Tab).
+Según `state.auth.user` monta **uno de dos árboles completos**: `AuthStack`
+(Login/Register) si no hay sesión, o `MainTabs` (las pestañas de tareas y
+perfil) si la hay. No es una pantalla oculta: mientras no haya sesión,
+`MainTabs` ni siquiera está registrado, así que no hay forma de navegar "a
+mano" hacia las tareas de nadie.
+
+**Persistencia de sesión:** `onAuthStateChanged` (Firebase) se escucha una
+sola vez, al montar `AppNavigator`, y actualiza `state.auth.user`. Mientras
+todavía no se sabe si hay sesión guardada (`isCheckingAuth`), se muestra un
+loader en vez de saltar directo al login — evita el "parpadeo" de mostrar
+Login un instante aunque el usuario ya estuviera logueado.
+
+**Las tareas, filtradas por usuario:** un segundo efecto, dependiente de
+`user`, se suscribe con `onSnapshot` (tiempo real) a
+`query(tasksRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'))`
+y despacha `setTasks` cada vez que cambia algo en el servidor — incluso
+desde otro dispositivo. Al cerrar sesión, se despacha `clearTasks` para no
+dejar en pantalla las tareas del usuario anterior.
+
+**Quién escribe en Firestore:** `TaskFormScreen` llama a
+`addTaskToFirestore(user.uid, {...})` al guardar; `TaskDetailScreen` llama
+a `updateTaskInFirestore`/`deleteTaskFromFirestore`. Ninguna pantalla
+despacha ya un reducer local para estos casos: Redux se limita a reflejar
+lo que el listener de Firestore va reportando (`setTasks`).
+
+### Variables de entorno
+
+Las credenciales de Firebase no están escritas en el código: se leen de
+`process.env.EXPO_PUBLIC_...`. Ver `.env.example` para la lista completa;
+`.env` (con los valores reales) nunca se sube al repositorio.
+
+### Cómo se probaron los flujos de login y guardado de tareas
+
+1. **Registro:** crear una cuenta nueva con email/contraseña en
+   `RegisterScreen` → la app pasa sola a `MainTabs` (sin navegar a mano).
+2. **Persistencia de sesión:** cerrar la app por completo y volver a
+   abrirla → entra directo a la lista de tareas, sin pedir login de nuevo.
+3. **Guardado en Firestore:** crear una tarea desde el formulario → se
+   verificó que aparece, en simultáneo, en la consola de Firebase
+   (Firestore Database → colección `tasks`) con el `userId` correcto.
+4. **Reactividad:** marcar una tarea como completada en el Detalle → el
+   cambio se ve al instante en la Lista, sin recargar nada.
+5. **Aislamiento por usuario:** cerrar sesión desde Perfil, registrar una
+   segunda cuenta de prueba → esa cuenta arranca sin ver ninguna tarea de
+   la cuenta anterior.
+6. **Errores de login:** probar con una contraseña incorrecta → la pantalla
+   de Login muestra el mensaje "La contraseña es incorrecta." en vez de
+   romperse o quedar colgada.
+
 ## Checkpoint 2: Estructura profesional, ProfileCard y Safe Area
 
 En este checkpoint se organizó el proyecto siguiendo una arquitectura
@@ -88,16 +169,26 @@ dispositivo.
 ## Estructura del proyecto
 
 ```
-App.js                  (envuelve todo con <Provider store={store}>)
+App.js                     (envuelve todo con <Provider store={store}>)
 index.js
+.env.example                (nombres de variables, sin credenciales reales)
 src/
+  config/
+    firebase.js              Singleton de Firebase (auth + db)
+  services/
+    authService.js
+    taskService.js
   navigation/
-    AppNavigator.js      (Tab + Stack de pantallas)
+    AppNavigator.js          raíz: Auth vs Main según la sesión
+    AuthStack.js
+    MainTabs.js               Tab + Stack de tareas
   store/
-    store.js              (configureStore)
+    store.js                  (configureStore)
   features/
     tasks/
-      tasksSlice.js        (estado, reducers, acciones y selectores de tareas)
+      tasksSlice.js            (estado, reducers, acciones y selectores de tareas)
+    auth/
+      authSlice.js              (user, isCheckingAuth)
   components/
     ProfileCard.js
     EmptyState.js
@@ -108,6 +199,9 @@ src/
     TaskDetailScreen.js
     TaskFormScreen.js
     ProfileScreen.js
+    auth/
+      LoginScreen.js
+      RegisterScreen.js
   constants/
     colors.js
   data/
@@ -121,9 +215,12 @@ src/
    ```
    npm install
    ```
-3. Iniciá el proyecto:
+3. Copiá `.env.example` a un archivo nuevo llamado `.env`, y completá cada
+   variable con las credenciales de tu propio proyecto de Firebase
+   (Firebase Console → Configuración del proyecto → tu Web App).
+4. Iniciá el proyecto:
    ```
    npx expo start
    ```
-4. Escaneá el código QR con Expo Go, o presioná `a` para abrir en el
+5. Escaneá el código QR con Expo Go, o presioná `a` para abrir en el
    emulador de Android.

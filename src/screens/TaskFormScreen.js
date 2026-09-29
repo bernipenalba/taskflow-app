@@ -4,21 +4,24 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
+    Alert,
     StyleSheet,
     KeyboardAvoidingView,
     ScrollView,
     Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { colors } from '../constants/colors';
-import { addTask } from '../features/tasks/tasksSlice';
+import { selectUser } from '../features/auth/authSlice';
+import { addTaskToFirestore } from '../services/taskService';
 
 const CATEGORIES = ['Personal', 'Trabajo', 'Urgente', 'Otro'];
 
 // navigation llega automáticamente: esta pantalla está registrada en un Stack.Screen.
 const TaskFormScreen = ({ navigation }) => {
-    const dispatch = useDispatch();
+    const user = useSelector(selectUser);
+    const [isSaving, setIsSaving] = useState(false);
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -57,30 +60,40 @@ const TaskFormScreen = ({ navigation }) => {
         return !newErrors.title && !newErrors.description;
         };
 
-    const handleAddTask = () => {
+    const handleAddTask = async () => {
         if (!validateForm()) {
             return; // hay campos inválidos, no seguimos
     }
 
-    // El id, la fecha y el trim() final los arma el propio reducer
-    // (bloque `prepare` de addTask en tasksSlice.js) — acá solo se avisa
-    // qué se quiere crear.
-    dispatch(addTask({ title, description, category }));
+    setIsSaving(true);
+    try {
+        // El id y la fecha del servidor los arma Firestore (serverTimestamp);
+        // el listener de AppNavigator.js se entera solo y actualiza la lista.
+        await addTaskToFirestore(user.uid, {
+            title: title.trim(),
+            description: description.trim(),
+            category,
+        });
 
-    // Reset del formulario a su estado inicial
-    setTitle('');
-    setDescription('');
-    setCategory(CATEGORIES[0]);
-    setErrors({ title: '', description: '' });
-    setTouched({ title: false, description: false });
+        // Reset del formulario a su estado inicial
+        setTitle('');
+        setDescription('');
+        setCategory(CATEGORIES[0]);
+        setErrors({ title: '', description: '' });
+        setTouched({ title: false, description: false });
 
-    // Navegación programática: tras guardar, volvemos a la lista.
-    navigation.navigate('TaskList');
+        // Navegación programática: tras guardar, volvemos a la lista.
+        navigation.navigate('TaskList');
+    } catch (error) {
+        Alert.alert('No se pudo guardar la tarea', error.message);
+    } finally {
+        setIsSaving(false);
+    }
     };
 
     // Se recalcula en cada render — no necesita useState porque depende
     // directamente de title/description, que ya son estado.
-    const isSubmitDisabled = title.trim().length < 5 || description.trim().length < 10;
+    const isSubmitDisabled = title.trim().length < 5 || description.trim().length < 10 || isSaving;
 
     return (
         <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
@@ -182,7 +195,7 @@ const TaskFormScreen = ({ navigation }) => {
                             disabled={isSubmitDisabled}
                             activeOpacity={0.8}
                         >
-                        <Text style={styles.buttonText}>Guardar tarea</Text>
+                        <Text style={styles.buttonText}>{isSaving ? 'Guardando...' : 'Guardar tarea'}</Text>
                         </TouchableOpacity>
                         </View>
                 </ScrollView>
