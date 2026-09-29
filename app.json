@@ -19,6 +19,18 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e72fd82d-bd62-4197-b6ac-09aea592391d"
+      }
+    },
+    "owner": "bernipenalba01",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e72fd82d-bd62-4197-b6ac-09aea592391d"
     }
   }
 }
