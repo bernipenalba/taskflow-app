@@ -24,13 +24,12 @@ const TaskDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  // task.createdAt llega como un Timestamp de Firestore (tiene .toDate()),
-  // no como texto ISO ni como Date de JS. Justo después de crear la tarea,
-  // mientras el servidor todavía no confirmó el serverTimestamp(), puede
-  // llegar como null por un instante — por eso el chequeo defensivo.
-  const createdDate = task.createdAt?.toDate ? task.createdAt.toDate() : null;
-  const formattedDate = createdDate
-    ? createdDate.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+  // taskService.js ya convirtió el Timestamp de Firestore a texto ISO antes
+  // de que llegara al store. Justo después de crear la tarea, mientras el
+  // servidor todavía no confirmó el serverTimestamp(), puede llegar como
+  // null por un instante — por eso el chequeo defensivo.
+  const formattedDate = task.createdAt
+    ? new Date(task.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
     : 'Guardando...';
 
   const handleToggle = async () => {
