@@ -3,6 +3,39 @@
 Aplicación móvil de gestión de tareas, construida con React Native y Expo
 como proyecto final del curso de desarrollo de apps móviles.
 
+## Entrega final: perfil con foto y capturas del flujo completo
+
+Última pieza del recorrido: en "Perfil", el usuario puede tocar su foto
+para elegir una de la galería (`expo-image-picker`), que se redimensiona y
+comprime con `expo-image-manipulator` y se guarda como texto base64 en
+Firestore (`users/{uid}`) — así sobrevive a cerrar la app, sin depender de
+Firebase Storage. El detalle de esta arquitectura está documentado más
+abajo, en la sección del flujo de autenticación.
+
+**Sobre el link de despliegue:** la consigna sugiere compartir la app vía
+Expo Go. Expo cambió su política el 12 de mayo de 2026: Expo Go ahora solo
+abre proyectos si quien escanea el QR está logueado con la misma cuenta que
+lo publicó, lo que vuelve imposible compartir un link público (confirmado
+por el propio soporte de Expo —
+[changelog oficial](https://expo.dev/changelog/expo-go-loading-changes-may-2026),
+[issue relacionado](https://github.com/expo/eas-cli/issues/3735)). Por eso
+la entrega es el repositorio, probado y documentado con las capturas de
+abajo en vez de un link público.
+
+### Capturas del flujo completo
+
+| Login | Nueva tarea | Lista de tareas |
+|---|---|---|
+| ![Login](docs/screenshots/01-login.png) | ![Nueva tarea](docs/screenshots/02-nueva-tarea.png) | ![Lista](docs/screenshots/03-lista-tareas.png) |
+
+| Detalle de tarea | Tarea completada | Filtro "Completadas" |
+|---|---|---|
+| ![Detalle](docs/screenshots/04-detalle-tarea.png) | ![Completada](docs/screenshots/05-tarea-completada.png) | ![Filtro](docs/screenshots/06-filtro-completadas.png) |
+
+| Lista actualizada | Selector de fotos nativo | Perfil con avatar |
+|---|---|---|
+| ![Lista actualizada](docs/screenshots/07-lista-actualizada.png) | ![Selector de fotos](docs/screenshots/08-selector-fotos.png) | ![Perfil](docs/screenshots/09-perfil-avatar.png) |
+
 ## Módulo 5: Navegación con React Navigation
 
 TaskFlow pasó de simular pantallas con un estado booleano (`selectedTask`)
